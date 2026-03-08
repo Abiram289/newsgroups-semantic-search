@@ -56,10 +56,12 @@ Entries are partitioned by cluster ID. Lookup only searches clusters where the q
 ## Setup
 
 ### Prerequisites
+
 - Python 3.11+
 - [20 Newsgroups dataset](http://qwone.com/~jason/20Newsgroups/20news-bydate.tar.gz) extracted to `data/20_newsgroups/`
 
 ### Install dependencies
+
 ```bash
 python -m venv venv
 venv\Scripts\activate      # Windows
@@ -67,6 +69,7 @@ pip install -r requirements.txt
 ```
 
 ### Run setup scripts (one time)
+
 ```bash
 # Step 1: embed documents and build vector store (~5 min)
 python -m src.embeddings
@@ -76,22 +79,33 @@ python -m src.clustering
 ```
 
 ### Start the API
+
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-API docs at `http://localhost:8000/docs`
+### Test with the UI (recommended)
 
-Open `ui.html` in your browser for the interactive test UI.
+Open `ui.html` in your browser. The UI lets you run queries, adjust the similarity threshold, see fuzzy cluster membership bars per query, and watch cache hit/miss stats update in real time.
+
+### Test with curl (alternative)
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "nasa and space exploration", "top_k": 5}'
+```
 
 ## Docker
 
 Build the image (code only — data is mounted at runtime):
+
 ```bash
 docker build -t newsgroups-search .
 ```
 
 Run with data mounted:
+
 ```powershell
 docker run -p 8000:8000 `
   -v ${PWD}/qdrant_db:/app/qdrant_db `
@@ -104,21 +118,15 @@ docker run -p 8000:8000 `
 
 ## API endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/query` | Semantic search with cache |
-| GET | `/cache/stats` | Hit rate, entry count, miss count |
-| DELETE | `/cache` | Flush cache and reset stats |
-| GET | `/health` | Server health check |
-
-### Example request
-```bash
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "nasa and space exploration", "top_k": 5}'
-```
+| Method | Endpoint       | Description                       |
+| ------ | -------------- | --------------------------------- |
+| POST   | `/query`       | Semantic search with cache        |
+| GET    | `/cache/stats` | Hit rate, entry count, miss count |
+| DELETE | `/cache`       | Flush cache and reset stats       |
+| GET    | `/health`      | Server health check               |
 
 ### Example response
+
 ```json
 {
   "query": "nasa and space exploration",
@@ -127,12 +135,16 @@ curl -X POST http://localhost:8000/query \
   "similarity_score": null,
   "result": "[Result 1] Category: sci.space (similarity: 0.6689)\n...",
   "dominant_cluster": 6,
-  "cluster_memberships": [0.091, 0.095, 0.076, 0.074, 0.081, 0.076, 0.102, 0.079, 0.095, 0.076, 0.061, 0.092],
+  "cluster_memberships": [
+    0.091, 0.095, 0.076, 0.074, 0.081, 0.076, 0.102, 0.079, 0.095, 0.076, 0.061,
+    0.092
+  ],
   "response_time_ms": 142.3
 }
 ```
 
 On a follow-up query with similar meaning:
+
 ```json
 {
   "query": "tell me about the space program",
