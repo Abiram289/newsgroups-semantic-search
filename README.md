@@ -98,7 +98,20 @@ curl -X POST http://localhost:8000/query \
 
 ## Docker
 
-Build the image (code only — data is mounted at runtime):
+### Option A — Pull from Docker Hub (fastest)
+
+```bash
+docker pull 7401323497/newsgroups-semantic-search:latest
+docker run -p 8000:8000 \
+  -v ${PWD}/qdrant_db:/app/qdrant_db \
+  -v ${PWD}/embeddings.npy:/app/embeddings.npy \
+  -v ${PWD}/corpus_meta.json:/app/corpus_meta.json \
+  -v ${PWD}/cluster_results.npz:/app/cluster_results.npz \
+  -v ${PWD}/cluster_meta.json:/app/cluster_meta.json \
+  7401323497/newsgroups-semantic-search:latest
+```
+
+### Option B — Build from source
 
 ```bash
 docker build -t newsgroups-search .
