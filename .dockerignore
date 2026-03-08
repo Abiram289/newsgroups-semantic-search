@@ -1,0 +1,46 @@
+# Exclude data files — mounted at runtime via -v, not baked into image
+
+qdrant_db/
+embeddings.npy
+corpus_meta.json
+cluster_results.npz
+cluster_meta.json
+
+# Raw dataset — large, not needed in container
+
+data/
+
+# Virtual environment — reinstalled fresh in builder stage
+
+venv/
+.venv/
+
+# Python cache
+
+**pycache**/
+_.pyc
+_.pyo
+
+# Git
+
+.git/
+.gitignore
+
+# Editor
+
+.vscode/
+
+# Secrets
+
+.env
+.env.\*
+
+# Development only
+
+notebooks/
+ui.html
+
+# OS
+
+.DS_Store
+Thumbs.db

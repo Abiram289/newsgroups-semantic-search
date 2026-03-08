@@ -1,0 +1,31 @@
+# === EMBEDDINGS ===
+sentence-transformers==2.7.0
+
+# === VECTOR DATABASE ===
+# Switched from ChromaDB to qdrant-client for Windows compatibility.
+# ChromaDB requires compiling chroma-hnswlib from C++ source on Windows
+# (needs Microsoft C++ Build Tools). qdrant-client is pure Python — installs
+# everywhere with no compilation step.
+
+qdrant-client==1.9.1
+
+# === FUZZY CLUSTERING ===
+scikit-learn==1.4.2
+
+# === API ===
+fastapi==0.111.0
+uvicorn==0.29.0
+pydantic==2.7.1
+
+# === DATA & MATH ===
+numpy==1.26.4
+pandas==2.2.2
+scipy==1.13.0
+
+# === VISUALISATION ===
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# === UTILITIES ===
+python-dotenv==1.0.1
+tqdm==4.66.2

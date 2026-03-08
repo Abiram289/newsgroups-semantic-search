@@ -1,0 +1,38 @@
+# ── Virtual environment ───────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── Generated data files (large, reproducible by running setup scripts) ──
+qdrant_db/
+embeddings.npy
+cluster_results.npz
+cluster_meta.json
+corpus_meta.json
+
+# ── Raw dataset (download separately, see README) ─────────────
+data/
+
+# ── Python cache ──────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ── Environment variables / secrets ───────────────────────────
+.env
+.env.*
+
+# ── Editor ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
