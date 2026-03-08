@@ -1,106 +1,144 @@
 # Newsgroups Semantic Search
 
-A lightweight semantic search system over the 20 Newsgroups dataset with fuzzy clustering and a from-scratch semantic cache.
+Semantic search system over the 20 Newsgroups dataset with fuzzy clustering and a semantic cache layer. Built as a take-home assignment for an AI/ML Engineer role.
+
+## What it does
+
+- Embeds 19,740 newsgroup documents using `all-MiniLM-L6-v2`
+- Stores vectors in Qdrant for fast approximate nearest-neighbour search
+- Clusters documents using Fuzzy C-Means (implemented from scratch in numpy)
+- Caches query results semantically — paraphrased queries return cached results without hitting the vector database
+- Exposes everything via a FastAPI REST service
 
 ## Architecture
 
 ```
-Raw Text (20k docs)
-      │
-      ▼
-┌─────────────────┐
-│   Embeddings    │  all-MiniLM-L6-v2 → 384-dim vectors
-│   (Part 1)      │  stored in ChromaDB
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Fuzzy Clustering│  PCA (384→50 dims) + Fuzzy C-Means
-│   (Part 2)      │  k=12 clusters, m=2 fuzziness
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Semantic Cache  │  Cluster-partitioned, cosine similarity
-│   (Part 3)      │  threshold=0.85, no external libraries
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   FastAPI API   │  POST /query, GET /cache/stats, DELETE /cache
-│   (Part 4)      │
-└─────────────────┘
+Query
+  → Embed (all-MiniLM-L6-v2, 384 dims)
+  → Fuzzy cluster memberships (FCM, k=12)
+  → Semantic cache lookup (cosine similarity ≥ 0.85)
+      → HIT:  return cached result
+      → MISS: search Qdrant → store in cache → return result
 ```
+
+## Project structure
+
+```
+newsgroups_semantic_search/
+├── src/
+│   ├── embeddings.py   # data loading, embedding, Qdrant storage
+│   ├── clustering.py   # PCA + Fuzzy C-Means from scratch
+│   ├── cache.py        # semantic cache implementation
+│   └── api.py          # FastAPI endpoints
+├── main.py             # app entry point
+├── ui.html             # browser-based test UI
+├── Dockerfile
+└── requirements.txt
+```
+
+## Design decisions
+
+**Embedding model: all-MiniLM-L6-v2**
+384-dimensional output, runs fully locally, strong STS benchmark score (68.07), ~14k sentences/sec on CPU.
+
+**Vector database: Qdrant**
+Pure Python client — no C++ compilation required. Same HNSW approximate nearest-neighbour search as ChromaDB, works on all platforms without build tools.
+
+**Fuzzy C-Means over K-Means**
+Hard clustering assigns one label per document. A post about gun legislation genuinely belongs to both politics and firearms clusters. FCM gives each document a probability distribution over all clusters (rows sum to 1.0), which also enables smarter cache partitioning.
+
+**FCM implemented from scratch**
+scikit-fuzzy imports the `imp` module removed in Python 3.12. Rather than patching the library, FCM is implemented directly in ~80 lines of numpy using cosine distance on L2-normalised vectors.
+
+**Semantic cache**
+Entries are partitioned by cluster ID. Lookup only searches clusters where the query has membership > 0.1, keeping comparisons sub-linear as the cache grows. Similarity threshold (default 0.85) is tunable per-request.
 
 ## Setup
 
+### Prerequisites
+- Python 3.11+
+- [20 Newsgroups dataset](http://qwone.com/~jason/20Newsgroups/20news-bydate.tar.gz) extracted to `data/20_newsgroups/`
+
+### Install dependencies
 ```bash
-# 1. Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate       # Linux/Mac
-# venv\Scripts\activate        # Windows
-
-# 2. Install dependencies
+venv\Scripts\activate      # Windows
 pip install -r requirements.txt
+```
 
-# 3. Build vector store (downloads model, embeds 20k docs — ~5-10 min)
+### Run setup scripts (one time)
+```bash
+# Step 1: embed documents and build vector store (~5 min)
 python -m src.embeddings
 
-# 4. Run fuzzy clustering (~3-5 min)
+# Step 2: run fuzzy clustering (~10 min)
 python -m src.clustering
+```
 
-# 5. Start the API
+### Start the API
+```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## API Usage
+API docs at `http://localhost:8000/docs`
 
-```bash
-# Search
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "what is nasa"}'
-
-# Second query — semantic cache hit
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "tell me about nasa"}'
-
-# Cache stats
-curl http://localhost:8000/cache/stats
-
-# Flush cache
-curl -X DELETE http://localhost:8000/cache
-```
-
-## Key Design Decisions
-
-### Embedding Model: `all-MiniLM-L6-v2`
-- 384-dim output, runs fully locally
-- Strong semantic similarity performance
-- 6x faster than full-size models at this task
-
-### Vector DB: ChromaDB
-- In-process, no separate server
-- Persists to disk — no re-embedding on restart
-- Cosine similarity search built-in
-
-### Fuzzy Clustering: Fuzzy C-Means (k=12, m=2)
-- k=12 chosen via FPC elbow analysis (see notebooks/)
-- m=2 is standard fuzziness — avoids near-hard clusters (m<1.5) and meaningless uniform distributions (m>3)
-- PCA to 50 dims first — fixes curse of dimensionality
-
-### Semantic Cache Threshold: 0.85
-- Lower than 0.85: unrelated queries incorrectly hit cache
-- Higher than 0.90: paraphrases miss cache, defeating its purpose
-- Cluster-partitioned lookup: O(n/k) instead of O(n) comparisons
+Open `ui.html` in your browser for the interactive test UI.
 
 ## Docker
 
+Build the image (code only — data is mounted at runtime):
 ```bash
 docker build -t newsgroups-search .
-docker run -p 8000:8000 newsgroups-search
 ```
 
-## Interactive API Docs
-Visit `http://localhost:8000/docs` after starting the server.
+Run with data mounted:
+```powershell
+docker run -p 8000:8000 `
+  -v ${PWD}/qdrant_db:/app/qdrant_db `
+  -v ${PWD}/embeddings.npy:/app/embeddings.npy `
+  -v ${PWD}/corpus_meta.json:/app/corpus_meta.json `
+  -v ${PWD}/cluster_results.npz:/app/cluster_results.npz `
+  -v ${PWD}/cluster_meta.json:/app/cluster_meta.json `
+  newsgroups-search
+```
+
+## API endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/query` | Semantic search with cache |
+| GET | `/cache/stats` | Hit rate, entry count, miss count |
+| DELETE | `/cache` | Flush cache and reset stats |
+| GET | `/health` | Server health check |
+
+### Example request
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "nasa and space exploration", "top_k": 5}'
+```
+
+### Example response
+```json
+{
+  "query": "nasa and space exploration",
+  "cache_hit": false,
+  "matched_query": null,
+  "similarity_score": null,
+  "result": "[Result 1] Category: sci.space (similarity: 0.6689)\n...",
+  "dominant_cluster": 6,
+  "cluster_memberships": [0.091, 0.095, 0.076, 0.074, 0.081, 0.076, 0.102, 0.079, 0.095, 0.076, 0.061, 0.092],
+  "response_time_ms": 142.3
+}
+```
+
+On a follow-up query with similar meaning:
+```json
+{
+  "query": "tell me about the space program",
+  "cache_hit": true,
+  "matched_query": "nasa and space exploration",
+  "similarity_score": 0.9134,
+  "response_time_ms": 8.6
+}
+```
