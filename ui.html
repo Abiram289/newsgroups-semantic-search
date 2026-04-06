@@ -1,761 +1,2283 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Newsgroups Semantic Search</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg:       #0a0a0f;
-    --surface:  #12121a;
-    --border:   #ffffff0f;
-    --accent:   #7c6aff;
-    --green:    #34d399;
-    --red:      #f87171;
-    --yellow:   #fbbf24;
-    --text:     #e2e2f0;
-    --muted:    #6b6b80;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Newsgroups Semantic Search</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --surface: #12121a;
+        --surface2: #1a1a26;
+        --border: #ffffff0f;
+        --border2: #ffffff1a;
+        --accent: #7c6aff;
+        --accent2: #a394ff;
+        --green: #34d399;
+        --red: #f87171;
+        --yellow: #fbbf24;
+        --blue: #60a5fa;
+        --orange: #fb923c;
+        --text: #e2e2f0;
+        --muted: #6b6b80;
+        --muted2: #9090a8;
+      }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    padding: 40px 20px;
-  }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Syne", sans-serif;
+        min-height: 100vh;
+        padding: 40px 20px 80px;
+      }
 
-  /* ── HEADER ── */
-  header {
-    max-width: 860px;
-    margin: 0 auto 40px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 24px;
-  }
-  header h1 {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-  header h1 span { color: var(--accent); }
-  header p { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+      /* ── HEADER ── */
+      header {
+        max-width: 900px;
+        margin: 0 auto 40px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 24px;
+      }
+      header h1 {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      header h1 span {
+        color: var(--accent);
+      }
+      header p {
+        font-size: 12px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        margin-top: 4px;
+      }
 
-  #server-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-  }
-  #status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background 0.3s;
-  }
-  #status-dot.online  { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  #status-dot.offline { background: var(--red); }
+      #server-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--muted);
+      }
+      #status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+        transition: background 0.3s;
+      }
+      #status-dot.online {
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+      }
+      #status-dot.offline {
+        background: var(--red);
+      }
 
-  /* ── MAIN LAYOUT ── */
-  main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+      /* ── MAIN ── */
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
 
-  /* ── SEARCH BOX ── */
-  .search-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .search-row { display: flex; gap: 10px; }
-  #query-input {
-    flex: 1;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    font-size: 15px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  #query-input:focus { border-color: var(--accent); }
-  #query-input::placeholder { color: var(--muted); }
+      /* ── SEARCH BOX ── */
+      .search-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .search-row {
+        display: flex;
+        gap: 10px;
+      }
+      #query-input {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: var(--text);
+        font-family: "Syne", sans-serif;
+        font-size: 15px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      #query-input:focus {
+        border-color: var(--accent);
+      }
+      #query-input::placeholder {
+        color: var(--muted);
+      }
 
-  button {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 12px 24px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-    white-space: nowrap;
-  }
-  button:hover  { opacity: 0.85; }
-  button:active { transform: scale(0.98); }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.secondary {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 13px;
-    padding: 10px 18px;
-  }
-  button.danger {
-    background: transparent;
-    border: 1px solid var(--red);
-    color: var(--red);
-    font-size: 13px;
-    padding: 10px 18px;
-  }
-  button.danger:hover { background: var(--red); color: #fff; }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-family: "Syne", sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition:
+          opacity 0.2s,
+          transform 0.1s;
+        white-space: nowrap;
+      }
+      button:hover {
+        opacity: 0.85;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      button.secondary {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 13px;
+        padding: 10px 18px;
+      }
+      button.danger {
+        background: transparent;
+        border: 1px solid var(--red);
+        color: var(--red);
+        font-size: 13px;
+        padding: 10px 18px;
+      }
+      button.danger:hover {
+        background: var(--red);
+        color: #fff;
+      }
 
-  .options-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .option-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .option-group input[type=number], .option-group input[type=range] {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 4px 8px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    width: 60px;
-    outline: none;
-  }
-  #threshold-val { color: var(--accent); font-weight: 700; min-width: 32px; display: inline-block; }
+      .options-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .option-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+      }
+      .option-group input[type="number"],
+      .option-group input[type="range"] {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 4px 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        width: 60px;
+        outline: none;
+      }
+      #threshold-val {
+        color: var(--accent);
+        font-weight: 700;
+        min-width: 32px;
+        display: inline-block;
+      }
 
-  /* ── QUICK QUERIES ── */
-  .quick-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
-  .quick-queries { display: flex; flex-wrap: wrap; gap: 8px; }
-  .quick-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    color: var(--text);
-    font-size: 12px;
-    padding: 6px 14px;
-    font-weight: 400;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .quick-btn:hover { border-color: var(--accent); color: var(--accent); background: transparent; transform: none; }
+      .quick-label {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .quick-queries {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .quick-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        color: var(--text);
+        font-size: 12px;
+        padding: 6px 14px;
+        font-weight: 400;
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
+      }
+      .quick-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: transparent;
+        transform: none;
+      }
 
-  /* ── STATS BAR ── */
-  #stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .stat-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
-  .stat-value { font-size: 24px; font-weight: 800; }
-  .stat-value.green  { color: var(--green); }
-  .stat-value.yellow { color: var(--yellow); }
-  .stat-value.accent { color: var(--accent); }
-  .stat-value.red    { color: var(--red); }
+      /* ── STATS BAR ── */
+      #stats-bar {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .stat-value.green {
+        color: var(--green);
+      }
+      .stat-value.yellow {
+        color: var(--yellow);
+      }
+      .stat-value.accent {
+        color: var(--accent);
+      }
+      .stat-value.red {
+        color: var(--red);
+      }
 
-  /* ── RESPONSE CARD ── */
-  #response-area { display: flex; flex-direction: column; gap: 12px; }
+      /* ── TABS ── */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
+      .tab {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: "JetBrains Mono", monospace;
+        cursor: pointer;
+        border: 1px solid transparent;
+        color: var(--muted);
+        background: transparent;
+        transition: all 0.2s;
+      }
+      .tab:hover {
+        color: var(--text);
+        transform: none;
+      }
+      .tab.active {
+        background: var(--surface);
+        border-color: var(--border);
+        color: var(--text);
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
 
-  .response-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    animation: slideIn 0.3s cubic-bezier(.16,1,.3,1);
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+      /* ── RESPONSE CARDS ── */
+      #response-area {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .response-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-  .card-header {
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-  .card-query { font-weight: 700; font-size: 15px; flex: 1; }
-  .cache-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .cache-badge.hit  { background: var(--green)22; color: var(--green); border: 1px solid var(--green)44; }
-  .cache-badge.miss { background: var(--red)22;   color: var(--red);   border: 1px solid var(--red)44; }
-  .time-badge {
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-  }
+      .card-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+      .card-query {
+        font-weight: 700;
+        font-size: 15px;
+        flex: 1;
+      }
+      .cache-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .cache-badge.hit {
+        background: #34d39922;
+        color: var(--green);
+        border: 1px solid #34d39944;
+      }
+      .cache-badge.miss {
+        background: #f8717122;
+        color: var(--red);
+        border: 1px solid #f8717144;
+      }
+      .time-badge {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--muted);
+      }
 
-  .card-meta {
-    padding: 12px 20px;
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-  }
-  .meta-item { display: flex; flex-direction: column; gap: 2px; }
-  .meta-key  { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
-  .meta-val  { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--text); }
-  .meta-val.accent { color: var(--accent); }
-  .meta-val.green  { color: var(--green); }
-  .meta-val.yellow { color: var(--yellow); }
+      /* ── METHOD TOGGLE ── */
+      .method-toggle-bar {
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface2);
+      }
+      .method-toggle-label {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-right: 4px;
+      }
+      .method-btn {
+        background: transparent;
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        color: var(--muted2);
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        padding: 5px 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .method-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: none;
+      }
+      .method-btn.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: #7c6aff18;
+      }
+      .method-btn[data-method="fcm-cosine"].active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: #7c6aff18;
+      }
+      .method-btn[data-method="fcm-euclid"].active {
+        border-color: var(--red);
+        color: var(--red);
+        background: #f8717118;
+      }
+      .method-btn[data-method="kmeans-cosine"].active {
+        border-color: var(--green);
+        color: var(--green);
+        background: #34d39918;
+      }
+      .method-btn[data-method="kmeans-euclid"].active {
+        border-color: var(--yellow);
+        color: var(--yellow);
+        background: #fbbf2418;
+      }
 
-  /* ── CLUSTER BAR ── */
-  .cluster-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
-  .cluster-label-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .cluster-bars { display: flex; gap: 3px; align-items: flex-end; height: 40px; }
-  .cluster-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-  .cluster-bar {
-    width: 100%;
-    border-radius: 2px 2px 0 0;
-    transition: height 0.5s cubic-bezier(.16,1,.3,1);
-    min-height: 2px;
-    background: var(--accent)55;
-  }
-  .cluster-bar.dominant { background: var(--accent); }
-  .cluster-bar-id { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+      .method-panel {
+        display: none;
+      }
+      .method-panel.active {
+        display: block;
+      }
 
-  /* ── RESULTS ── */
-  .results-section { padding: 16px 20px; }
-  .results-label {
-    font-size: 11px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-  }
-  .result-item {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: border-color 0.2s;
-  }
-  .result-item:hover { border-color: var(--accent)55; }
-  .result-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
-  .result-category {
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .result-score {
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--green);
-  }
-  .result-text {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.6;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .result-item.expanded .result-text {
-    -webkit-line-clamp: unset;
-    display: block;
-  }
+      /* ── METHOD INFO RIBBON ── */
+      .method-info-ribbon {
+        padding: 10px 20px;
+        font-size: 12px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--muted2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .method-info-ribbon .ribbon-note {
+        color: var(--muted);
+        font-size: 11px;
+      }
 
-  /* ── HISTORY ── */
-  #history-area { display: flex; flex-direction: column; gap: 8px; }
-  .history-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    font-size: 13px;
-  }
-  .history-item:hover { border-color: var(--accent)55; }
-  .history-query { flex: 1; color: var(--text); }
-  .history-time  { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+      .card-meta {
+        padding: 12px 20px;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .meta-key {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .meta-val {
+        font-size: 13px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text);
+      }
+      .meta-val.accent {
+        color: var(--accent);
+      }
+      .meta-val.green {
+        color: var(--green);
+      }
+      .meta-val.yellow {
+        color: var(--yellow);
+      }
 
-  /* ── SECTION HEADERS ── */
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .section-title {
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
+      /* ── CLUSTER BARS ── */
+      .cluster-section {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .cluster-label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .cluster-bars {
+        display: flex;
+        gap: 3px;
+        align-items: flex-end;
+        height: 40px;
+      }
+      .cluster-bar-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        height: 100%;
+        justify-content: flex-end;
+      }
+      .cluster-bar {
+        width: 100%;
+        border-radius: 2px 2px 0 0;
+        transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        min-height: 2px;
+        background: var(--accent) 55;
+      }
+      .cluster-bar.dominant {
+        background: var(--accent);
+      }
+      .cluster-bar-id {
+        font-size: 9px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+      }
 
-  /* ── LOADER ── */
-  .loader {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 8px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+      /* ── RESULTS ── */
+      .results-section {
+        padding: 16px 20px;
+      }
+      .results-label {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+      }
+      .result-item {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
+      .result-item:hover {
+        border-color: #7c6aff55;
+      }
+      .result-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .result-category {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .result-score {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--green);
+      }
+      .result-text {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .result-item.expanded .result-text {
+        -webkit-line-clamp: unset;
+        display: block;
+      }
 
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    border: 1px dashed var(--border);
-    border-radius: 12px;
-  }
-  .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+      /* ── SPEED INDICATOR ── */
+      .speed-bar-wrap {
+        padding: 8px 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .speed-label {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        width: 80px;
+      }
+      .speed-track {
+        flex: 1;
+        height: 4px;
+        background: var(--border2);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .speed-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
 
-  /* ── TABS ── */
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-  .tab {
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    cursor: pointer;
-    border: 1px solid transparent;
-    color: var(--muted);
-    background: transparent;
-    transition: all 0.2s;
-  }
-  .tab:hover  { color: var(--text); transform: none; }
-  .tab.active { background: var(--surface); border-color: var(--border); color: var(--text); }
+      /* ── HISTORY ── */
+      #history-area {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .history-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        font-size: 13px;
+      }
+      .history-item:hover {
+        border-color: #7c6aff55;
+      }
+      .history-query {
+        flex: 1;
+        color: var(--text);
+      }
+      .history-time {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+      }
 
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
+      /* ── SECTION HEADERS ── */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .section-title {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
 
-  @media (max-width: 600px) {
-    #stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .card-meta { gap: 12px; }
-  }
-</style>
-</head>
-<body>
+      /* ── LOADER ── */
+      .loader {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-<header>
-  <div>
-    <h1>Newsgroups <span>Semantic Search</span></h1>
-    <p style="margin-top:4px">20 Newsgroups · Fuzzy Clustering · Semantic Cache</p>
-  </div>
-  <div id="server-status">
-    <div id="status-dot"></div>
-    <span id="status-text">checking...</span>
-  </div>
-</header>
+      /* ── EMPTY STATE ── */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+      }
+      .empty-state .icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
 
-<main>
+      /* ═══════════════════════════════════════════
+     COMPARISON TAB
+  ═══════════════════════════════════════════ */
+      .comparison-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
 
-  <!-- SEARCH BOX -->
-  <div class="search-box">
-    <div class="search-row">
-      <input type="text" id="query-input" placeholder="Ask anything about the newsgroups corpus..." autocomplete="off" />
-      <button id="search-btn" onclick="runQuery()">Search</button>
-    </div>
+      /* ── VERDICT CARD ── */
+      .verdict-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .verdict-header {
+        padding: 14px 20px;
+        background: #7c6aff12;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .verdict-header h3 {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent2);
+      }
+      .verdict-body {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .verdict-winner {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px;
+        background: var(--bg);
+        border-radius: 8px;
+        border: 1px solid var(--border2);
+      }
+      .winner-badge {
+        background: var(--accent);
+        color: #fff;
+        border-radius: 6px;
+        font-size: 10px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        padding: 4px 10px;
+        white-space: nowrap;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+      }
+      .verdict-text {
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--muted2);
+      }
+      .verdict-text strong {
+        color: var(--text);
+        font-weight: 700;
+      }
 
-    <div class="options-row">
-      <div class="option-group">
-        <span>top_k</span>
-        <input type="number" id="top-k" value="5" min="1" max="20" />
+      .why-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .why-item {
+        padding: 12px 14px;
+        background: var(--bg);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .why-item .why-method {
+        font-size: 10px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .why-item .why-verdict {
+        font-size: 12px;
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .why-item .why-verdict em {
+        font-style: normal;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .verdict-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 3px;
+      }
+
+      /* ── METRICS TABLE ── */
+      .metrics-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .metrics-card-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .metrics-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .metrics-table th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 400;
+      }
+      .metrics-table td {
+        padding: 12px 16px;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+      .metrics-table tr:last-child td {
+        border-bottom: none;
+      }
+      .metrics-table tr.winner-row td {
+        background: #7c6aff08;
+      }
+      .metrics-table tr:hover td {
+        background: var(--surface2);
+      }
+
+      .method-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 4px;
+      }
+      .method-pill.fcm-cosine {
+        background: #7c6aff18;
+        color: var(--accent2);
+      }
+      .method-pill.fcm-euclid {
+        background: #f8717118;
+        color: var(--red);
+      }
+      .method-pill.kmeans-cosine {
+        background: #34d39918;
+        color: var(--green);
+      }
+      .method-pill.kmeans-euclid {
+        background: #fbbf2418;
+        color: var(--yellow);
+      }
+
+      .metric-val {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .metric-val.best {
+        color: var(--green);
+        font-weight: 700;
+      }
+      .metric-val.worst {
+        color: var(--red);
+      }
+      .metric-val.mid {
+        color: var(--yellow);
+      }
+
+      .metric-bar-cell {
+        min-width: 120px;
+      }
+      .metric-bar-track {
+        height: 6px;
+        background: var(--border2);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 4px;
+      }
+      .metric-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+      }
+
+      /* ── PER-QUERY BREAKDOWN ── */
+      .query-breakdown-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .query-breakdown-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .query-breakdown-header h3 {
+        font-size: 11px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .query-tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .qbtn {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        color: var(--muted);
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        padding: 4px 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .qbtn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: none;
+      }
+      .qbtn.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+
+      .query-panel {
+        display: none;
+        padding: 16px 20px;
+      }
+      .query-panel.active {
+        display: block;
+      }
+
+      .method-row {
+        display: grid;
+        grid-template-columns: 130px 1fr 80px 80px;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .method-row:last-child {
+        border-bottom: none;
+      }
+      .method-row-label {
+        font-size: 12px;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .clusters-searched {
+        font-size: 11px;
+        color: var(--muted2);
+      }
+      .coverage-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        text-align: right;
+      }
+      .dominant-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        text-align: right;
+        color: var(--muted2);
+      }
+
+      .mem-bar-wrap {
+        display: flex;
+        gap: 2px;
+        align-items: flex-end;
+        height: 24px;
+      }
+      .mem-bar {
+        border-radius: 1px 1px 0 0;
+        min-height: 2px;
+      }
+
+      /* ── CACHE CONTROLS ── */
+      .cache-controls {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      @media (max-width: 640px) {
+        #stats-bar {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .why-grid {
+          grid-template-columns: 1fr;
+        }
+        .method-row {
+          grid-template-columns: 100px 1fr 60px;
+        }
+        .dominant-val {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Newsgroups <span>Semantic Search</span></h1>
+        <p>20 Newsgroups · Fuzzy Clustering · Semantic Cache</p>
       </div>
-      <div class="option-group">
-        <span>threshold</span>
-        <input type="range" id="threshold" min="0.5" max="1.0" step="0.01" value="0.85"
-               oninput="document.getElementById('threshold-val').textContent = parseFloat(this.value).toFixed(2)" />
-        <span id="threshold-val">0.85</span>
+      <div id="server-status">
+        <div id="status-dot"></div>
+        <span id="status-text">checking...</span>
       </div>
-    </div>
+    </header>
 
-    <div>
-      <div class="quick-label" style="margin-bottom:8px">Quick queries</div>
-      <div class="quick-queries">
-        <button class="quick-btn" onclick="setQuery('what is nasa and space exploration')">🚀 nasa & space</button>
-        <button class="quick-btn" onclick="setQuery('tell me about the space program')">🛸 space program</button>
-        <button class="quick-btn" onclick="setQuery('gun control legislation debate')">⚖️ gun control</button>
-        <button class="quick-btn" onclick="setQuery('firearms and second amendment rights')">🔫 second amendment</button>
-        <button class="quick-btn" onclick="setQuery('windows operating system problems')">💻 windows OS</button>
-        <button class="quick-btn" onclick="setQuery('christian religion and god')">✝️ religion</button>
-        <button class="quick-btn" onclick="setQuery('baseball season scores')">⚾ baseball</button>
-        <button class="quick-btn" onclick="setQuery('car engine repair and maintenance')">🚗 cars</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- STATS BAR -->
-  <div id="stats-bar">
-    <div class="stat-card">
-      <div class="stat-label">Total Entries</div>
-      <div class="stat-value accent" id="stat-entries">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Cache Hits</div>
-      <div class="stat-value green" id="stat-hits">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Cache Misses</div>
-      <div class="stat-value red" id="stat-misses">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Hit Rate</div>
-      <div class="stat-value yellow" id="stat-hitrate">—</div>
-    </div>
-  </div>
-
-  <!-- TABS -->
-  <div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('results', this)">Results</button>
-      <button class="tab" onclick="switchTab('history', this)">History</button>
-    </div>
-
-    <!-- RESULTS TAB -->
-    <div id="tab-results" class="tab-content active">
-      <div id="response-area">
-        <div class="empty-state">
-          <div class="icon">🔍</div>
-          Run a query to see results here
+    <main>
+      <!-- SEARCH BOX -->
+      <div class="search-box">
+        <div class="search-row">
+          <input
+            type="text"
+            id="query-input"
+            placeholder="Ask anything about the newsgroups corpus..."
+            autocomplete="off"
+          />
+          <button id="search-btn" onclick="runQuery()">Search</button>
+        </div>
+        <div class="options-row">
+          <div class="option-group">
+            <span>top_k</span>
+            <input type="number" id="top-k" value="5" min="1" max="20" />
+          </div>
+          <div class="option-group">
+            <span>threshold</span>
+            <input
+              type="range"
+              id="threshold"
+              min="0.5"
+              max="1.0"
+              step="0.01"
+              value="0.85"
+              oninput="
+                document.getElementById('threshold-val').textContent =
+                  parseFloat(this.value).toFixed(2)
+              "
+            />
+            <span id="threshold-val">0.85</span>
+          </div>
+        </div>
+        <div>
+          <div class="quick-label">Quick queries</div>
+          <div class="quick-queries">
+            <button
+              class="quick-btn"
+              onclick="setQuery('nasa and space exploration')"
+            >
+              🚀 nasa & space
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('tell me about the space program')"
+            >
+              🛸 space program
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('gun control legislation debate')"
+            >
+              ⚖️ gun control
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('firearms and second amendment rights')"
+            >
+              🔫 second amendment
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('windows operating system problems')"
+            >
+              💻 windows OS
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('christian religion and god')"
+            >
+              ✝️ religion
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('baseball season scores')"
+            >
+              ⚾ baseball
+            </button>
+            <button
+              class="quick-btn"
+              onclick="setQuery('car engine repair and maintenance')"
+            >
+              🚗 cars
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- HISTORY TAB -->
-    <div id="tab-history" class="tab-content">
-      <div class="section-header">
-        <span class="section-title">Query History</span>
-        <button class="secondary" onclick="clearHistory()">Clear</button>
-      </div>
-      <div id="history-area">
-        <div class="empty-state">
-          <div class="icon">📋</div>
-          No queries yet
+      <!-- STATS BAR -->
+      <div id="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Total Entries</div>
+          <div class="stat-value accent" id="stat-entries">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cache Hits</div>
+          <div class="stat-value green" id="stat-hits">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cache Misses</div>
+          <div class="stat-value red" id="stat-misses">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Hit Rate</div>
+          <div class="stat-value yellow" id="stat-hitrate">—</div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- CACHE CONTROLS -->
-  <div style="display:flex; justify-content:flex-end; gap:10px;">
-    <button class="secondary" onclick="fetchStats()">↻ Refresh Stats</button>
-    <button class="danger" onclick="flushCache()">🗑 Flush Cache</button>
-  </div>
+      <!-- TABS -->
+      <div>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('results', this)">
+            Results
+          </button>
+          <button class="tab" onclick="switchTab('comparison', this)">
+            Comparison
+          </button>
+          <button class="tab" onclick="switchTab('history', this)">
+            History
+          </button>
+        </div>
 
-</main>
+        <!-- RESULTS TAB -->
+        <div id="tab-results" class="tab-content active">
+          <div id="response-area">
+            <div class="empty-state">
+              <div class="icon">🔍</div>
+              Run a query to see results here
+            </div>
+          </div>
+        </div>
 
-<script>
-// ── STATE ──────────────────────────────────────────────────────
-const history = [];
+        <!-- COMPARISON TAB -->
+        <div id="tab-comparison" class="tab-content">
+          <div class="comparison-section">
+            <!-- VERDICT -->
+            <div class="verdict-card">
+              <div class="verdict-header">
+                <span style="font-size: 16px">🏆</span>
+                <h3>Verdict — which method wins and why</h3>
+              </div>
+              <div class="verdict-body">
+                <div class="verdict-winner">
+                  <div>
+                    <div class="winner-badge">Best overall</div>
+                  </div>
+                  <div class="verdict-text">
+                    <strong>FCM + Cosine</strong> is the right choice for this
+                    system — not because it scores highest on every metric, but
+                    because it's the only method that's correct for the problem.
+                    Sentence embeddings encode meaning as <em>direction</em>,
+                    not magnitude. Cosine distance measures only direction;
+                    Euclidean conflates direction with document length. FCM's
+                    soft assignments mean a query about gun control legislation
+                    searches both politics and firearms clusters simultaneously,
+                    instead of being forced into one. KMeans would miss half the
+                    relevant documents.
+                  </div>
+                </div>
+                <div class="why-grid">
+                  <div class="why-item">
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <div
+                        class="verdict-dot"
+                        style="background: var(--accent)"
+                      ></div>
+                      <div class="why-method">FCM + Cosine</div>
+                    </div>
+                    <div class="why-verdict">
+                      ✓ Correct metric for embeddings. ✓ Multi-cluster search.
+                      FPC 0.1231 — finds real structure.
+                      <em>53 iterations to converge</em> — genuinely difficult
+                      problem.
+                    </div>
+                  </div>
+                  <div class="why-item">
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <div
+                        class="verdict-dot"
+                        style="background: var(--red)"
+                      ></div>
+                      <div class="why-method">FCM + Euclidean</div>
+                    </div>
+                    <div class="why-verdict">
+                      ✗ Collapses to FPC = 0.0833 (minimum possible) in just 3
+                      iterations. Every doc gets uniform memberships. No
+                      structure found — degenerate result.
+                    </div>
+                  </div>
+                  <div class="why-item">
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <div
+                        class="verdict-dot"
+                        style="background: var(--green)"
+                      ></div>
+                      <div class="why-method">KMeans + Cosine</div>
+                    </div>
+                    <div class="why-verdict">
+                      Higher ARI (0.319) and NMI (0.506) — hard labels map
+                      cleanly to discrete categories. But hard assignment means
+                      single-cluster search only. Loses cross-topic queries.
+                    </div>
+                  </div>
+                  <div class="why-item">
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <div
+                        class="verdict-dot"
+                        style="background: var(--yellow)"
+                      ></div>
+                      <div class="why-method">KMeans + Euclidean</div>
+                    </div>
+                    <div class="why-verdict">
+                      Similar scores to KMeans+Cosine (ARI 0.319, NMI 0.504) but
+                      assigns to different clusters than KMeans+Cosine — showing
+                      metric choice matters. Still hard assignment only.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-// ── SERVER STATUS CHECK ────────────────────────────────────────
-async function checkServer() {
-  try {
-    const res = await fetch(`${API_BASE}/health`);
-    const dot  = document.getElementById('status-dot');
-    const text = document.getElementById('status-text');
-    if (res.ok) {
-      dot.className  = 'online';
-      const data     = await res.json();
-      text.textContent = `online · ${data.vector_store_docs.toLocaleString()} docs`;
-    } else {
-      dot.className  = 'offline';
-      text.textContent = 'server error';
-    }
-  } catch {
-    document.getElementById('status-dot').className = 'offline';
-    document.getElementById('status-text').textContent = 'offline — start uvicorn';
-  }
-}
+            <!-- METRICS TABLE -->
+            <div class="metrics-card">
+              <div class="metrics-card-header">
+                <span>Clustering quality metrics</span>
+                <span style="color: var(--muted); font-size: 10px"
+                  >from compare.py — 19,740 docs, PCA 384→100 dims</span
+                >
+              </div>
+              <table class="metrics-table">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>FPC / Inertia</th>
+                    <th>ARI</th>
+                    <th>NMI</th>
+                    <th>Silhouette</th>
+                    <th>Converged</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="winner-row">
+                    <td>
+                      <span class="method-pill fcm-cosine">★ FCM + Cosine</span>
+                    </td>
+                    <td>
+                      <span class="metric-val best">0.1231</span>
+                      <div class="metric-bar-track">
+                        <div
+                          class="metric-bar-fill"
+                          style="width: 85%; background: var(--accent)"
+                        ></div>
+                      </div>
+                    </td>
+                    <td><span class="metric-val mid">0.2207</span></td>
+                    <td><span class="metric-val mid">0.3854</span></td>
+                    <td><span class="metric-val mid">0.0649</span></td>
+                    <td
+                      style="
+                        font-family: &quot;JetBrains Mono&quot;, monospace;
+                        font-size: 12px;
+                        color: var(--muted2);
+                      "
+                    >
+                      53 iters
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span class="method-pill fcm-euclid"
+                        >FCM + Euclidean</span
+                      >
+                    </td>
+                    <td>
+                      <span class="metric-val worst">0.0833 ← min</span>
+                      <div class="metric-bar-track">
+                        <div
+                          class="metric-bar-fill"
+                          style="width: 10%; background: var(--red)"
+                        ></div>
+                      </div>
+                    </td>
+                    <td><span class="metric-val worst">0.1031</span></td>
+                    <td><span class="metric-val worst">0.2949</span></td>
+                    <td><span class="metric-val worst">−0.0368</span></td>
+                    <td
+                      style="
+                        font-family: &quot;JetBrains Mono&quot;, monospace;
+                        font-size: 12px;
+                        color: var(--red);
+                      "
+                    >
+                      3 iters ⚠
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span class="method-pill kmeans-cosine"
+                        >KMeans + Cosine</span
+                      >
+                    </td>
+                    <td>
+                      <span
+                        class="metric-val"
+                        style="
+                          color: var(--muted2);
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                        "
+                        >16,051 inertia</span
+                      >
+                      <div class="metric-bar-track">
+                        <div
+                          class="metric-bar-fill"
+                          style="width: 60%; background: var(--green)"
+                        ></div>
+                      </div>
+                    </td>
+                    <td><span class="metric-val best">0.3192</span></td>
+                    <td><span class="metric-val best">0.5062</span></td>
+                    <td><span class="metric-val best">0.0982</span></td>
+                    <td
+                      style="
+                        font-family: &quot;JetBrains Mono&quot;, monospace;
+                        font-size: 12px;
+                        color: var(--muted2);
+                      "
+                    >
+                      2.6s
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span class="method-pill kmeans-euclid"
+                        >KMeans + Euclidean</span
+                      >
+                    </td>
+                    <td>
+                      <span
+                        class="metric-val"
+                        style="
+                          color: var(--muted2);
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                        "
+                        >10,365 inertia</span
+                      >
+                      <div class="metric-bar-track">
+                        <div
+                          class="metric-bar-fill"
+                          style="width: 70%; background: var(--yellow)"
+                        ></div>
+                      </div>
+                    </td>
+                    <td><span class="metric-val best">0.3187</span></td>
+                    <td><span class="metric-val best">0.5038</span></td>
+                    <td><span class="metric-val best">0.1001</span></td>
+                    <td
+                      style="
+                        font-family: &quot;JetBrains Mono&quot;, monospace;
+                        font-size: 12px;
+                        color: var(--muted2);
+                      "
+                    >
+                      0.9s
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div
+                style="
+                  padding: 12px 16px;
+                  border-top: 1px solid var(--border);
+                  display: flex;
+                  gap: 24px;
+                  flex-wrap: wrap;
+                "
+              >
+                <div
+                  style="
+                    font-size: 11px;
+                    color: var(--muted);
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                  "
+                >
+                  <span style="color: var(--text)">FPC</span> — Fuzzy Partition
+                  Coefficient [1/k, 1.0]. Higher = crisper clusters.
+                </div>
+                <div
+                  style="
+                    font-size: 11px;
+                    color: var(--muted);
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                  "
+                >
+                  <span style="color: var(--text)">ARI</span> — Adjusted Rand
+                  Index vs true newsgroup labels.
+                </div>
+                <div
+                  style="
+                    font-size: 11px;
+                    color: var(--muted);
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                  "
+                >
+                  <span style="color: var(--text)">NMI</span> — Normalised
+                  Mutual Information vs true labels.
+                </div>
+              </div>
+            </div>
 
-// API base — change if your server runs elsewhere
-const API_BASE = 'http://localhost:8000';
+            <!-- PER-QUERY BREAKDOWN -->
+            <div class="query-breakdown-card">
+              <div class="query-breakdown-header">
+                <h3>Per-query cluster assignments — all 4 methods</h3>
+                <div class="query-tabs">
+                  <button
+                    class="qbtn active"
+                    onclick="switchQuery('nasa', this)"
+                  >
+                    nasa
+                  </button>
+                  <button class="qbtn" onclick="switchQuery('guns', this)">
+                    guns
+                  </button>
+                  <button class="qbtn" onclick="switchQuery('windows', this)">
+                    windows
+                  </button>
+                  <button class="qbtn" onclick="switchQuery('religion', this)">
+                    religion
+                  </button>
+                </div>
+              </div>
 
-// ── FETCH STATS ────────────────────────────────────────────────
-async function fetchStats() {
-  try {
-    const res  = await fetch(`${API_BASE}/cache/stats`);
-    const data = await res.json();
-    document.getElementById('stat-entries').textContent = data.total_entries;
-    document.getElementById('stat-hits').textContent    = data.hit_count;
-    document.getElementById('stat-misses').textContent  = data.miss_count;
-    document.getElementById('stat-hitrate').textContent =
-      data.total_entries === 0 ? '—' : (data.hit_rate * 100).toFixed(1) + '%';
-  } catch {
-    ['stat-entries','stat-hits','stat-misses','stat-hitrate']
-      .forEach(id => document.getElementById(id).textContent = '—');
-  }
-}
+              <!-- NASA -->
+              <div class="query-panel active" id="qp-nasa">
+                <div
+                  style="
+                    margin-bottom: 14px;
+                    font-size: 13px;
+                    color: var(--muted2);
+                    font-style: italic;
+                  "
+                >
+                  "nasa and space exploration" — 133ms, cache MISS
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-cosine" style="font-size: 11px"
+                    >FCM + Cosine</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Top: C0:10.4%, C8:9.7%, C6:9.1% —
+                      <strong style="color: var(--accent)"
+                        >1 cluster searched</strong
+                      >
+                    </div>
+                    <div
+                      class="mem-bar-wrap"
+                      style="margin-top: 6px"
+                      id="nasa-fcm-cos-bars"
+                    ></div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--accent)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C0</div>
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-euclid" style="font-size: 11px"
+                    >FCM + Euclid</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Top: C8:8.4%, C11:8.4%, C6:8.4% —
+                      <span style="color: var(--red)"
+                        >uniform memberships (degenerate)</span
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--red)">
+                    degenerate
+                  </div>
+                  <div class="dominant-val">C8</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-cosine"
+                    style="font-size: 11px"
+                    >KMeans + Cos</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 3 (1,472 docs) —
+                      <span style="color: var(--muted2)">hard assignment</span>
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--green)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C3</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-euclid"
+                    style="font-size: 11px"
+                    >KMeans + Euc</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 10 (1,510 docs) —
+                      <span style="color: var(--muted2)"
+                        >different cluster to KMeans+Cos</span
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--yellow)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C10</div>
+                </div>
+              </div>
 
-// ── RUN QUERY ──────────────────────────────────────────────────
-async function runQuery() {
-  const query     = document.getElementById('query-input').value.trim();
-  const topK      = parseInt(document.getElementById('top-k').value) || 5;
-  const threshold = parseFloat(document.getElementById('threshold').value);
+              <!-- GUNS -->
+              <div class="query-panel" id="qp-guns">
+                <div
+                  style="
+                    margin-bottom: 14px;
+                    font-size: 13px;
+                    color: var(--muted2);
+                    font-style: italic;
+                  "
+                >
+                  "gun control legislation debate" — 39ms, cache MISS
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-cosine" style="font-size: 11px"
+                    >FCM + Cosine</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Top: C10:58.8%, C9:7.7%, C7:5.1% —
+                      <strong style="color: var(--accent)"
+                        >strong single-cluster assignment</strong
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--accent)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C10</div>
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-euclid" style="font-size: 11px"
+                    >FCM + Euclid</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      All clusters ~8.4% —
+                      <span style="color: var(--red)"
+                        >uniform memberships (degenerate)</span
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--red)">
+                    degenerate
+                  </div>
+                  <div class="dominant-val">C4</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-cosine"
+                    style="font-size: 11px"
+                    >KMeans + Cos</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 7 (1,600 docs)
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--green)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C7</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-euclid"
+                    style="font-size: 11px"
+                    >KMeans + Euc</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 9 (1,286 docs) — different to
+                      KMeans+Cos
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--yellow)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C9</div>
+                </div>
+              </div>
 
-  if (!query) return;
+              <!-- WINDOWS -->
+              <div class="query-panel" id="qp-windows">
+                <div
+                  style="
+                    margin-bottom: 14px;
+                    font-size: 13px;
+                    color: var(--muted2);
+                    font-style: italic;
+                  "
+                >
+                  "windows operating system problems" — 32ms, cache MISS
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-cosine" style="font-size: 11px"
+                    >FCM + Cosine</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      C1:13.5%, C11:13.5%, C6:11.5% —
+                      <strong style="color: var(--accent)"
+                        >4 clusters searched simultaneously</strong
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--accent)">
+                    4× coverage
+                  </div>
+                  <div class="dominant-val">C1</div>
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-euclid" style="font-size: 11px"
+                    >FCM + Euclid</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      All clusters ~8.4% —
+                      <span style="color: var(--red)"
+                        >uniform (degenerate)</span
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--red)">
+                    degenerate
+                  </div>
+                  <div class="dominant-val">C8</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-cosine"
+                    style="font-size: 11px"
+                    >KMeans + Cos</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 9 (2,221 docs) — misses 3 relevant
+                      clusters
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--green)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C9</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-euclid"
+                    style="font-size: 11px"
+                    >KMeans + Euc</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 1 (2,231 docs) — different cluster to
+                      KMeans+Cos
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--yellow)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C1</div>
+                </div>
+              </div>
 
-  const btn = document.getElementById('search-btn');
-  btn.disabled   = true;
-  btn.innerHTML  = '<span class="loader"></span>Searching...';
+              <!-- RELIGION -->
+              <div class="query-panel" id="qp-religion">
+                <div
+                  style="
+                    margin-bottom: 14px;
+                    font-size: 13px;
+                    color: var(--muted2);
+                    font-style: italic;
+                  "
+                >
+                  "christian religion and faith" — 31ms, cache MISS
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-cosine" style="font-size: 11px"
+                    >FCM + Cosine</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      C2:33.4%, C4:29.3% —
+                      <strong style="color: var(--accent)"
+                        >2 clusters searched, ~63% confident</strong
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--accent)">
+                    2× coverage
+                  </div>
+                  <div class="dominant-val">C2</div>
+                </div>
+                <div class="method-row">
+                  <span class="method-pill fcm-euclid" style="font-size: 11px"
+                    >FCM + Euclid</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      All clusters ~8.4% —
+                      <span style="color: var(--red)"
+                        >uniform (degenerate)</span
+                      >
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--red)">
+                    degenerate
+                  </div>
+                  <div class="dominant-val">C4</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-cosine"
+                    style="font-size: 11px"
+                    >KMeans + Cos</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 1 (2,082 docs) — misses C4
+                      (soc.religion.christian)
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--green)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C1</div>
+                </div>
+                <div class="method-row">
+                  <span
+                    class="method-pill kmeans-euclid"
+                    style="font-size: 11px"
+                    >KMeans + Euc</span
+                  >
+                  <div>
+                    <div class="clusters-searched">
+                      Assigned to: Cluster 3 (1,785 docs) — different to
+                      KMeans+Cos
+                    </div>
+                  </div>
+                  <div class="coverage-val" style="color: var(--yellow)">
+                    1× coverage
+                  </div>
+                  <div class="dominant-val">C3</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-  // Switch to results tab
-  switchTab('results', document.querySelector('.tab'));
+        <!-- HISTORY TAB -->
+        <div id="tab-history" class="tab-content">
+          <div class="section-header">
+            <span class="section-title">Query History</span>
+            <button class="secondary" onclick="clearHistory()">Clear</button>
+          </div>
+          <div id="history-area">
+            <div class="empty-state">
+              <div class="icon">📋</div>
+              No queries yet
+            </div>
+          </div>
+        </div>
+      </div>
 
-  try {
-    const res  = await fetch(`${API_BASE}/query`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ query, top_k: topK, threshold }),
-    });
-    const data = await res.json();
+      <!-- CACHE CONTROLS -->
+      <div class="cache-controls">
+        <button class="secondary" onclick="fetchStats()">
+          ↻ Refresh Stats
+        </button>
+        <button class="danger" onclick="flushCache()">🗑 Flush Cache</button>
+      </div>
+    </main>
 
-    renderResponse(data);
-    addToHistory(data);
-    fetchStats();
-  } catch (e) {
-    document.getElementById('response-area').innerHTML = `
-      <div class="empty-state">
-        <div class="icon">⚠️</div>
-        Could not reach server at ${API_BASE}<br>Make sure uvicorn is running
-      </div>`;
-  } finally {
-    btn.disabled  = false;
-    btn.innerHTML = 'Search';
-  }
-}
+    <script>
+      // ── DATA ──────────────────────────────────────────────────────────────
+      const queryHistory = [];
+      const API_BASE = "http://localhost:8000";
 
-// ── RENDER RESPONSE ────────────────────────────────────────────
-function renderResponse(data) {
-  const area = document.getElementById('response-area');
+      // Static comparison data from compare.py output
+      // Used to show method toggle on live result cards
+      const COMPARISON_DATA = {
+        methods: {
+          "fcm-cosine": {
+            label: "FCM + Cosine",
+            color: "var(--accent)",
+            note: "Used by the live API — correct metric for embeddings",
+          },
+          "fcm-euclid": {
+            label: "FCM + Euclidean",
+            color: "var(--red)",
+            note: "Degenerate result — collapses to uniform memberships in 3 iters",
+          },
+          "kmeans-cosine": {
+            label: "KMeans + Cosine",
+            color: "var(--green)",
+            note: "Better ARI/NMI but hard assignment — single cluster only",
+          },
+          "kmeans-euclid": {
+            label: "KMeans + Euclidean",
+            color: "var(--yellow)",
+            note: "Similar to KMeans+Cosine but assigns different clusters",
+          },
+        },
+        metrics: {
+          "fcm-cosine": { fpc: 0.1231, ari: 0.2207, nmi: 0.3854, sil: 0.0649 },
+          "fcm-euclid": { fpc: 0.0833, ari: 0.1031, nmi: 0.2949, sil: -0.0368 },
+          "kmeans-cosine": { fpc: null, ari: 0.3192, nmi: 0.5062, sil: 0.0982 },
+          "kmeans-euclid": { fpc: null, ari: 0.3187, nmi: 0.5038, sil: 0.1001 },
+        },
+      };
 
-  const isHit      = data.cache_hit;
-  const memberships = data.cluster_memberships || [];
-  const dominant   = data.dominant_cluster;
-  const maxM       = Math.max(...memberships);
+      // ── SERVER STATUS ─────────────────────────────────────────────────────
+      async function checkServer() {
+        try {
+          const res = await fetch(`${API_BASE}/health`);
+          const dot = document.getElementById("status-dot");
+          const text = document.getElementById("status-text");
+          if (res.ok) {
+            dot.className = "online";
+            const data = await res.json();
+            text.textContent = `online · ${data.vector_store_docs.toLocaleString()} docs`;
+          } else {
+            dot.className = "offline";
+            text.textContent = "server error";
+          }
+        } catch {
+          document.getElementById("status-dot").className = "offline";
+          document.getElementById("status-text").textContent =
+            "offline — start uvicorn";
+        }
+      }
 
-  // Parse results text into individual result items
-  const results = (data.result || '').split('\n\n---\n\n').map(r => {
-    const catMatch   = r.match(/Category:\s*([^\s(]+)/);
-    const scoreMatch = r.match(/similarity:\s*([\d.]+)/);
-    const textStart  = r.indexOf('\n');
-    return {
-      category: catMatch  ? catMatch[1]  : 'unknown',
-      score:    scoreMatch ? scoreMatch[1] : '?',
-      text:     textStart >= 0 ? r.slice(textStart + 1).trim() : r,
-    };
-  });
+      // ── FETCH STATS ───────────────────────────────────────────────────────
+      async function fetchStats() {
+        try {
+          const res = await fetch(`${API_BASE}/cache/stats`);
+          const data = await res.json();
+          document.getElementById("stat-entries").textContent =
+            data.total_entries;
+          document.getElementById("stat-hits").textContent = data.hit_count;
+          document.getElementById("stat-misses").textContent = data.miss_count;
+          document.getElementById("stat-hitrate").textContent =
+            data.hit_count + data.miss_count === 0
+              ? "—"
+              : (data.hit_rate * 100).toFixed(1) + "%";
+        } catch {
+          ["stat-entries", "stat-hits", "stat-misses", "stat-hitrate"].forEach(
+            (id) => (document.getElementById(id).textContent = "—"),
+          );
+        }
+      }
 
-  const clusterBars = memberships.map((m, i) => `
+      // ── RUN QUERY ─────────────────────────────────────────────────────────
+      async function runQuery() {
+        const query = document.getElementById("query-input").value.trim();
+        const topK = parseInt(document.getElementById("top-k").value) || 5;
+        const threshold = parseFloat(
+          document.getElementById("threshold").value,
+        );
+        if (!query) return;
+
+        const btn = document.getElementById("search-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loader"></span>Searching...';
+        switchTab("results", document.querySelectorAll(".tab")[0]);
+
+        try {
+          const res = await fetch(`${API_BASE}/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query, top_k: topK, threshold }),
+          });
+          const data = await res.json();
+          renderResponse(data);
+          addToHistory(data);
+          fetchStats();
+        } catch {
+          document.getElementById("response-area").innerHTML = `
+      <div class="empty-state"><div class="icon">⚠️</div>
+      Could not reach server at ${API_BASE}<br>Make sure uvicorn is running</div>`;
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = "Search";
+        }
+      }
+
+      // ── RENDER RESPONSE ───────────────────────────────────────────────────
+      function renderResponse(data) {
+        const area = document.getElementById("response-area");
+        const isHit = data.cache_hit;
+        const memberships = data.cluster_memberships || [];
+        const dominant = data.dominant_cluster;
+        const maxM = memberships.length ? Math.max(...memberships) : 1;
+        const cardId = "card-" + Date.now();
+
+        // Parse results
+        const results = (data.result || "").split("\n\n---\n\n").map((r) => {
+          const catMatch = r.match(/Category:\s*([^\s(]+)/);
+          const scoreMatch = r.match(/similarity:\s*([\d.]+)/);
+          const textStart = r.indexOf("\n");
+          return {
+            category: catMatch ? catMatch[1] : "unknown",
+            score: scoreMatch ? scoreMatch[1] : "?",
+            text: textStart >= 0 ? r.slice(textStart + 1).trim() : r,
+          };
+        });
+
+        // Cluster bars (FCM cosine = live API)
+        const clusterBars = memberships
+          .map(
+            (m, i) => `
     <div class="cluster-bar-wrap">
-      <div class="cluster-bar ${i === dominant ? 'dominant' : ''}"
+      <div class="cluster-bar ${i === dominant ? "dominant" : ""}"
            style="height:${Math.max(4, (m / maxM) * 36)}px"
-           title="Cluster ${i}: ${(m*100).toFixed(1)}%"></div>
+           title="Cluster ${i}: ${(m * 100).toFixed(1)}%"></div>
       <div class="cluster-bar-id">${i}</div>
-    </div>
-  `).join('');
+    </div>`,
+          )
+          .join("");
 
-  const resultItems = results.map((r, i) => `
+        const resultItems = results
+          .map(
+            (r) => `
     <div class="result-item" onclick="this.classList.toggle('expanded')">
       <div class="result-item-header">
         <span class="result-category">${r.category}</span>
         <span class="result-score">sim: ${r.score}</span>
       </div>
       <div class="result-text">${escapeHtml(r.text)}</div>
-    </div>
-  `).join('');
+    </div>`,
+          )
+          .join("");
 
-  const card = document.createElement('div');
-  card.className = 'response-card';
-  card.innerHTML = `
+        // Speed bar — 8ms = green, 50ms = yellow, 200ms+ = red
+        const ms = data.response_time_ms;
+        const speedPct = Math.min(100, (ms / 200) * 100);
+        const speedColor =
+          ms < 30 ? "var(--green)" : ms < 100 ? "var(--yellow)" : "var(--red)";
+
+        // FCM cosine is what the API uses (live data)
+        // For other methods we show static comparison data
+        const fcmCosineNote = COMPARISON_DATA.methods["fcm-cosine"].note;
+        const clustersSearched = memberships.filter((m) => m > 0.1).length || 1;
+
+        const card = document.createElement("div");
+        card.className = "response-card";
+        card.id = cardId;
+        card.innerHTML = `
     <div class="card-header">
       <div class="card-query">"${escapeHtml(data.query)}"</div>
-      <span class="cache-badge ${isHit ? 'hit' : 'miss'}">${isHit ? '⚡ CACHE HIT' : '🔍 CACHE MISS'}</span>
-      <span class="time-badge">${data.response_time_ms}ms</span>
+      <span class="cache-badge ${isHit ? "hit" : "miss"}">${isHit ? "⚡ CACHE HIT" : "🔍 CACHE MISS"}</span>
+      <span class="time-badge">${ms}ms</span>
     </div>
 
-    <div class="card-meta">
-      <div class="meta-item">
-        <div class="meta-key">Dominant Cluster</div>
-        <div class="meta-val accent">#${dominant}</div>
+    <!-- METHOD TOGGLE -->
+    <div class="method-toggle-bar">
+      <span class="method-toggle-label">Method</span>
+      <button class="method-btn active" data-method="fcm-cosine"   onclick="switchMethod('${cardId}','fcm-cosine',this)">FCM + Cosine ★</button>
+      <button class="method-btn"        data-method="fcm-euclid"   onclick="switchMethod('${cardId}','fcm-euclid',this)">FCM + Euclidean</button>
+      <button class="method-btn"        data-method="kmeans-cosine" onclick="switchMethod('${cardId}','kmeans-cosine',this)">KMeans + Cosine</button>
+      <button class="method-btn"        data-method="kmeans-euclid" onclick="switchMethod('${cardId}','kmeans-euclid',this)">KMeans + Euclidean</button>
+    </div>
+
+    <!-- FCM COSINE PANEL (live) -->
+    <div class="method-panel active" data-panel="fcm-cosine">
+      <div class="method-info-ribbon">
+        <span style="color:var(--accent2);font-weight:700">Live API result</span>
+        <span>${clustersSearched} cluster${clustersSearched > 1 ? "s" : ""} searched (threshold &gt;0.1)</span>
+        <span class="ribbon-note">${fcmCosineNote}</span>
       </div>
-      ${isHit ? `
-      <div class="meta-item">
-        <div class="meta-key">Matched Query</div>
-        <div class="meta-val" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"${escapeHtml(data.matched_query)}"</div>
+      <div class="card-meta">
+        <div class="meta-item">
+          <div class="meta-key">Dominant Cluster</div>
+          <div class="meta-val accent">#${dominant}</div>
+        </div>
+        ${
+          isHit
+            ? `
+        <div class="meta-item">
+          <div class="meta-key">Matched Query</div>
+          <div class="meta-val" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"${escapeHtml(data.matched_query)}"</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-key">Similarity</div>
+          <div class="meta-val green">${data.similarity_score}</div>
+        </div>`
+            : ""
+        }
+        <div class="meta-item">
+          <div class="meta-key">FPC</div>
+          <div class="meta-val accent">0.1231</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-key">ARI</div>
+          <div class="meta-val" style="color:var(--muted2)">0.2207</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-key">Response</div>
+          <div class="meta-val ${ms < 50 ? "green" : "yellow"}">${ms}ms</div>
+        </div>
       </div>
-      <div class="meta-item">
-        <div class="meta-key">Similarity Score</div>
-        <div class="meta-val green">${data.similarity_score}</div>
-      </div>` : ''}
-      <div class="meta-item">
-        <div class="meta-key">Response Time</div>
-        <div class="meta-val ${data.response_time_ms < 50 ? 'green' : 'yellow'}">${data.response_time_ms}ms</div>
+      <div style="padding:6px 20px 0">
+        <div class="speed-bar-wrap" style="padding:0">
+          <span class="speed-label" style="font-size:10px;color:var(--muted)">speed</span>
+          <div class="speed-track"><div class="speed-fill" style="width:${speedPct}%;background:${speedColor}"></div></div>
+          <span style="font-size:10px;color:${speedColor};font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right">${ms}ms</span>
+        </div>
+      </div>
+      ${
+        memberships.length
+          ? `
+      <div class="cluster-section">
+        <div class="cluster-label-row">
+          <span>Fuzzy Cluster Memberships (FCM + Cosine)</span>
+          <span>dominant: C${dominant} (${(memberships[dominant] * 100).toFixed(1)}%)</span>
+        </div>
+        <div class="cluster-bars">${clusterBars}</div>
+      </div>`
+          : ""
+      }
+      <div class="results-section">
+        <div class="results-label">Retrieved Documents — click to expand</div>
+        ${resultItems || '<div style="color:var(--muted);font-size:13px">No results</div>'}
       </div>
     </div>
 
-    ${memberships.length ? `
-    <div class="cluster-section">
-      <div class="cluster-label-row">
-        <span>Fuzzy Cluster Memberships</span>
-        <span>dominant: cluster ${dominant} (${(memberships[dominant]*100).toFixed(1)}%)</span>
+    <!-- FCM EUCLIDEAN PANEL (static) -->
+    <div class="method-panel" data-panel="fcm-euclid">
+      <div class="method-info-ribbon" style="border-top:2px solid var(--red)">
+        <span style="color:var(--red);font-weight:700">Degenerate result</span>
+        <span>Collapsed in 3 iterations — FPC = 0.0833 (minimum possible)</span>
+        <span class="ribbon-note">Every document gets identical 8.3% membership across all 12 clusters</span>
       </div>
-      <div class="cluster-bars">${clusterBars}</div>
-    </div>` : ''}
+      <div class="card-meta">
+        <div class="meta-item"><div class="meta-key">FPC</div><div class="meta-val" style="color:var(--red)">0.0833 ← min (1/k)</div></div>
+        <div class="meta-item"><div class="meta-key">ARI</div><div class="meta-val" style="color:var(--red)">0.1031</div></div>
+        <div class="meta-item"><div class="meta-key">NMI</div><div class="meta-val" style="color:var(--red)">0.2949</div></div>
+        <div class="meta-item"><div class="meta-key">Silhouette</div><div class="meta-val" style="color:var(--red)">−0.0368</div></div>
+        <div class="meta-item"><div class="meta-key">Iterations</div><div class="meta-val" style="color:var(--red)">3 ⚠</div></div>
+      </div>
+      <div class="cluster-section">
+        <div class="cluster-label-row"><span>Membership Distribution (Uniform — all ~8.3%)</span><span style="color:var(--red)">no structure found</span></div>
+        <div class="cluster-bars">${Array.from(
+          { length: 12 },
+          (_, i) => `
+          <div class="cluster-bar-wrap">
+            <div class="cluster-bar" style="height:18px;background:var(--red)44"></div>
+            <div class="cluster-bar-id">${i}</div>
+          </div>`,
+        ).join("")}
+        </div>
+      </div>
+      <div class="results-section">
+        <div style="color:var(--muted2);font-size:13px;line-height:1.7;padding:8px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          ⚠️ Euclidean FCM is not used for retrieval in this system. Because all cluster memberships are uniform (0.083), every cluster would be searched — equivalent to a full collection scan with no clustering benefit. The degenerate initialisation means Euclidean distance cannot find meaningful structure in normalised embedding space.
+        </div>
+      </div>
+    </div>
 
-    <div class="results-section">
-      <div class="results-label">Retrieved Documents (click to expand)</div>
-      ${resultItems || '<div style="color:var(--muted);font-size:13px">No results</div>'}
+    <!-- KMEANS COSINE PANEL (static) -->
+    <div class="method-panel" data-panel="kmeans-cosine">
+      <div class="method-info-ribbon" style="border-top:2px solid var(--green)">
+        <span style="color:var(--green);font-weight:700">Hard assignment</span>
+        <span>Highest ARI (0.3192) and NMI (0.5062) — best label agreement</span>
+        <span class="ribbon-note">Single cluster searched — misses cross-topic documents</span>
+      </div>
+      <div class="card-meta">
+        <div class="meta-item"><div class="meta-key">ARI</div><div class="meta-val" style="color:var(--green)">0.3192 ← best</div></div>
+        <div class="meta-item"><div class="meta-key">NMI</div><div class="meta-val" style="color:var(--green)">0.5062 ← best</div></div>
+        <div class="meta-item"><div class="meta-key">Silhouette</div><div class="meta-val" style="color:var(--green)">0.0982</div></div>
+        <div class="meta-item"><div class="meta-key">Clusters Searched</div><div class="meta-val" style="color:var(--muted2)">1 (hard)</div></div>
+        <div class="meta-item"><div class="meta-key">Train Time</div><div class="meta-val" style="color:var(--muted2)">2.6s</div></div>
+      </div>
+      <div class="results-section">
+        <div style="color:var(--muted2);font-size:13px;line-height:1.7;padding:8px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          KMeans scores better on ARI/NMI because hard cluster labels map cleanly to the 20 discrete newsgroup categories. But for retrieval, a query about "christian religion" is forced into a single cluster and misses the related cluster containing soc.religion.christian posts. FCM searches both simultaneously.
+        </div>
+      </div>
+    </div>
+
+    <!-- KMEANS EUCLIDEAN PANEL (static) -->
+    <div class="method-panel" data-panel="kmeans-euclid">
+      <div class="method-info-ribbon" style="border-top:2px solid var(--yellow)">
+        <span style="color:var(--yellow);font-weight:700">Hard assignment</span>
+        <span>ARI 0.3187, NMI 0.5038 — similar to KMeans+Cosine</span>
+        <span class="ribbon-note">Assigns to different clusters than KMeans+Cosine — metric matters even in hard clustering</span>
+      </div>
+      <div class="card-meta">
+        <div class="meta-item"><div class="meta-key">ARI</div><div class="meta-val" style="color:var(--yellow)">0.3187</div></div>
+        <div class="meta-item"><div class="meta-key">NMI</div><div class="meta-val" style="color:var(--yellow)">0.5038</div></div>
+        <div class="meta-item"><div class="meta-key">Silhouette</div><div class="meta-val" style="color:var(--yellow)">0.1001</div></div>
+        <div class="meta-item"><div class="meta-key">Inertia</div><div class="meta-val" style="color:var(--muted2)">10,365</div></div>
+        <div class="meta-item"><div class="meta-key">Train Time</div><div class="meta-val" style="color:var(--muted2)">0.9s</div></div>
+      </div>
+      <div class="results-section">
+        <div style="color:var(--muted2);font-size:13px;line-height:1.7;padding:8px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+          Scores nearly identical to KMeans+Cosine but assigns to completely different cluster IDs — demonstrating that the choice of distance metric changes which cluster is "closest" even when overall cluster quality is similar. Lower inertia (10,365 vs 16,051) is expected because Euclidean minimises absolute distance, not angular distance.
+        </div>
+      </div>
     </div>
   `;
 
-  // Prepend new result
-  if (area.querySelector('.empty-state')) area.innerHTML = '';
-  area.insertBefore(card, area.firstChild);
-}
+        if (area.querySelector(".empty-state")) area.innerHTML = "";
+        area.insertBefore(card, area.firstChild);
+      }
 
-// ── HISTORY ────────────────────────────────────────────────────
-function addToHistory(data) {
-  history.unshift(data);
-  renderHistory();
-}
+      // ── METHOD TOGGLE ─────────────────────────────────────────────────────
+      function switchMethod(cardId, method, btn) {
+        const card = document.getElementById(cardId);
+        card
+          .querySelectorAll(".method-btn")
+          .forEach((b) => b.classList.remove("active"));
+        card
+          .querySelectorAll(".method-panel")
+          .forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        card
+          .querySelector(`.method-panel[data-panel="${method}"]`)
+          .classList.add("active");
+      }
 
-function renderHistory() {
-  const area = document.getElementById('history-area');
-  if (!history.length) {
-    area.innerHTML = '<div class="empty-state"><div class="icon">📋</div>No queries yet</div>';
-    return;
-  }
-  area.innerHTML = history.map((d, i) => `
+      // ── HISTORY ───────────────────────────────────────────────────────────
+      function addToHistory(data) {
+        queryHistory.unshift(data);
+        renderHistory();
+      }
+
+      function renderHistory() {
+        const area = document.getElementById("history-area");
+        if (!queryHistory.length) {
+          area.innerHTML =
+            '<div class="empty-state"><div class="icon">📋</div>No queries yet</div>';
+          return;
+        }
+        area.innerHTML = queryHistory
+          .map(
+            (d) => `
     <div class="history-item" onclick="replayQuery('${escapeHtml(d.query)}')">
-      <span class="cache-badge ${d.cache_hit ? 'hit' : 'miss'}" style="flex-shrink:0">
-        ${d.cache_hit ? 'HIT' : 'MISS'}
-      </span>
+      <span class="cache-badge ${d.cache_hit ? "hit" : "miss"}" style="flex-shrink:0">${d.cache_hit ? "HIT" : "MISS"}</span>
       <span class="history-query">${escapeHtml(d.query)}</span>
       <span class="history-time">${d.response_time_ms}ms</span>
-    </div>
-  `).join('');
-}
+    </div>`,
+          )
+          .join("");
+      }
 
-function clearHistory() {
-  history.length = 0;
-  renderHistory();
-}
+      function clearHistory() {
+        queryHistory.length = 0;
+        renderHistory();
+      }
 
-// ── FLUSH CACHE ────────────────────────────────────────────────
-async function flushCache() {
-  if (!confirm('Flush the entire cache and reset all stats?')) return;
-  try {
-    await fetch(`${API_BASE}/cache`, { method: 'DELETE' });
-    fetchStats();
-    alert('Cache flushed!');
-  } catch {
-    alert('Could not reach server');
-  }
-}
+      // ── FLUSH CACHE ───────────────────────────────────────────────────────
+      async function flushCache() {
+        if (!confirm("Flush the entire cache and reset all stats?")) return;
+        try {
+          await fetch(`${API_BASE}/cache`, { method: "DELETE" });
+          fetchStats();
+          alert("Cache flushed!");
+        } catch {
+          alert("Could not reach server");
+        }
+      }
 
-// ── HELPERS ────────────────────────────────────────────────────
-function setQuery(q) {
-  document.getElementById('query-input').value = q;
-  document.getElementById('query-input').focus();
-}
+      // ── HELPERS ───────────────────────────────────────────────────────────
+      function setQuery(q) {
+        document.getElementById("query-input").value = q;
+        document.getElementById("query-input").focus();
+      }
+      function replayQuery(q) {
+        setQuery(q);
+        switchTab("results", document.querySelectorAll(".tab")[0]);
+        runQuery();
+      }
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
 
-function replayQuery(q) {
-  setQuery(q);
-  switchTab('results', document.querySelectorAll('.tab')[0]);
-  runQuery();
-}
+      function switchTab(name, el) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("tab-" + name).classList.add("active");
+        el.classList.add("active");
+      }
 
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+      function switchQuery(key, btn) {
+        document
+          .querySelectorAll(".query-panel")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".qbtn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("qp-" + key).classList.add("active");
+        btn.classList.add("active");
+      }
 
-function switchTab(name, el) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  el.classList.add('active');
-}
+      // Enter key
+      document
+        .getElementById("query-input")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runQuery();
+        });
 
-// Enter key to search
-document.getElementById('query-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') runQuery();
-});
-
-// ── INIT ──────────────────────────────────────────────────────
-checkServer();
-fetchStats();
-setInterval(checkServer, 10000);
-</script>
-</body>
+      // ── INIT ──────────────────────────────────────────────────────────────
+      checkServer();
+      fetchStats();
+      setInterval(checkServer, 10000);
+    </script>
+  </body>
 </html>

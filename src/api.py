@@ -181,7 +181,7 @@ async def query(request: QueryRequest):
     dominant_cluster = int(np.argmax(query_membership))
 
     original_threshold = cache.similarity_threshold
-    if request.threshold is not None:
+    if request.threshold is not None and 0.0 < request.threshold <= 1.0:
         cache.set_threshold(request.threshold)
 
     cache_result = cache.lookup(query_embedding, query_membership)
